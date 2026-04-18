@@ -143,11 +143,28 @@
 }
 
 @media (max-width: 900px) {
-  .desktop-nav {
-    display: none;
+  .nav-container {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
   }
   
-  .mobile-toggle-container {
-    display: flex;
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .nav-items {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .nav-socials {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
   }
 }
