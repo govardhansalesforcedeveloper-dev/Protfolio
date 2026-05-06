@@ -1,4 +1,4 @@
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Download } from 'lucide-react';
 import { FaLinkedin, FaSalesforce, FaEnvelope } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import { portfolioData } from '../data/portfolioData';
@@ -43,6 +43,10 @@ const Navbar = ({ theme, toggleTheme }) => {
           </div>
           
           <div className="nav-socials">
+            <a href={personal.resume} download aria-label="Download Resume" className="nav-social-icon" style={{ display: 'flex', alignItems: 'center', background: 'var(--accent-gradient)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '1rem', textDecoration: 'none' }}>
+              <Download size={16} />
+              <span style={{ fontSize: '0.8rem', marginLeft: '4px', fontWeight: 600 }}>Resume</span>
+            </a>
             <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${personal.email}`} target="_blank" rel="noreferrer" aria-label="Email" className="nav-social-icon">
               <FaEnvelope size={18} />
             </a>

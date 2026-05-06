@@ -150,6 +150,10 @@
 }
 
 @media (max-width: 768px) {
+  .hero-section {
+    padding-top: 180px; /* Offset for wrapped mobile navbar */
+  }
+
   .hero-buttons {
     flex-direction: column;
     width: 100%;

@@ -8,8 +8,8 @@ export const portfolioData = {
     linkedin: "https://www.linkedin.com/in/govardhan-reddy-chigicherla-51b380221/",
     github: "", // Optional, can be added later
     trailhead: "https://www.salesforce.com/trailblazer/greddy169",
-    resume: "/Govardhan_Resume.pdf", 
-    photo: "/profile-photo.png" 
+    resume: "/Govardhan_Resume.pdf",
+    photo: "/profile-photo.png"
   },
   technicalExpertise: [
     {
@@ -18,7 +18,7 @@ export const portfolioData = {
     },
     {
       category: "Salesforce Clouds",
-      items: ["Sales Cloud", "Health Cloud", "Experience Cloud"]
+      items: ["Sales Cloud", "Serivce Cloud", "Health Cloud", "Experience Cloud"]
     },
     {
       category: "Tools",
@@ -45,13 +45,13 @@ export const portfolioData = {
       id: 2,
       role: "Salesforce Developer",
       company: "Lean Agilenautics",
-      duration: "Mar 2022 – Aug 2025",
+      duration: "Aug 2022 – sep 2025",
       description: "Built scalable integrations, custom LWCs, and automation flows leading to significant operational improvements."
     },
     {
       id: 3,
       role: "Salesforce Developer/Administrator Intern",
-      company: "Panoramic Health",
+      company: "Lean Agilenautics",
       duration: "March 2022 - August 2022",
       description: "Assisted in CRM implementations, data migrations, and flow automations."
     }
@@ -61,25 +61,25 @@ export const portfolioData = {
       id: 1,
       name: "Salesforce Certified Platform Developer I",
       date: "2023",
-      image: "/cert-pd1.pdf" 
+      image: "/cert-pd1.pdf"
     },
     {
       id: 2,
       name: "Salesforce Certified Platform Developer II",
       date: "2024",
-      image: "/cert-pd2.pdf" 
+      image: "/cert-pd2.pdf"
     },
     {
       id: 3,
       name: "Copado Certified Fundamentals I",
-      date: "2023",
-      image: "/Copado-Certified-FUNDAMENTALS-I.pdf" 
+      date: "2025",
+      image: "/Copado-Certified-FUNDAMENTALS-I.pdf"
     },
     {
       id: 4,
       name: "Salesforce Certified Associate",
       date: "2023",
-      image: "/cert-Associate.pdf" 
+      image: "/cert-Associate.pdf"
     }
   ],
   clientProjects: [
@@ -89,10 +89,12 @@ export const portfolioData = {
       description: "Developed and managed robust integrations to consume JSON data from external systems, syncing seamlessly with Salesforce.",
       technologies: ["Apex", "LWC", "REST API", "JSON", "Redux"],
       impact: [
+        "Developed Apex integrations to consume and process JSON data from external systems and synchronize records with Salesforce.",
         "Built Lightning Web Components (LWC) with Redux-based state management to manage integration responses and improve UI responsiveness.",
         "Implemented JSON parsing and transformation logic in Apex to map external payloads to Salesforce objects.",
         "Developed backend logic to store processed integration data and update corresponding Salesforce records.",
-        "Delivered UI enhancements and functional improvements for business users using LWC."
+        "Delivered UI enhancements and functional improvements for business users using LWC.",
+        "Configured user access and permissions using profiles, roles, and permission sets."
       ],
       links: { live: "", github: "" }
     },
@@ -102,10 +104,12 @@ export const portfolioData = {
       description: "Engineered scalable Apex solutions and API integrations to process large datasets and optimize location-based services.",
       technologies: ["Apex", "Batch Jobs", "Google Maps API", "Salesforce Flows"],
       impact: [
-        "Integrated Google Maps APIs to optimize address callouts using latitude and longitude and developed a Nearby Business Address feature.",
-        "Engineered scalable Apex solutions (classes, triggers, and batch jobs) to process large datasets and ensure high data integrity.",
-        "Designed and implemented Salesforce Flows to streamline business account creation and reduce manual operational effort.",
-        "Executed large-scale data migration and resolved critical production issues to maintain system reliability."
+        "Engineered scalable Apex solutions (classes, triggers, and batch jobs) to process large datasets, automate complex business logic, and ensure high data integrity within Salesforce.",
+        "Integrated Google Maps APIs to optimize address callouts using latitude and longitude and developed a Nearby Business Address feature to enhance location accuracy and user experience.",
+        "Designed and implemented Salesforce Flows and automation processes to streamline business account creation and reduce manual operational effort.",
+        "Developed custom reports and dashboards to track key performance indicators (KPIs) and provide actionable insights for business stakeholders.",
+        "Executed large-scale data migration and system support activities, including importing external data into Salesforce and proactively resolving critical production issues to maintain system reliability."
+
       ],
       links: { live: "", github: "" }
     },
@@ -115,10 +119,13 @@ export const portfolioData = {
       description: "Implemented custom Salesforce solutions and third-party integrations to automate scheduling and optimize data entry.",
       technologies: ["Apex", "LWC", "Zoom API", "Data Loader"],
       impact: [
-        "Seamlessly integrated Salesforce with Zoom, automating meeting scheduling and participant data synchronization.",
-        "Engineered and optimized Apex classes, triggers, LWC, and flows resulting in a 15% reduction in processing time.",
-        "Achieved and maintained over 75% code coverage through comprehensive Apex test class development.",
-        "Optimized data entry procedures through process automation and intuitive interface design, enhancing user adoption."
+        "Engineered and optimized Apex classes, triggers, Lightning Web Components (LWC), and flows resulting in a 15% reduction in processing time.",
+        "Achieved and maintained over 75% code coverage through comprehensive Apex test class development, ensuring application stability and reliability.",
+        "Seamlessly integrated Salesforce with Zoom, automating meeting scheduling and participant data synchronization, and streamlining campaign management.",
+        "Designed and configured custom Salesforce objects, fields, validation rules, profiles, permission sets, and sharing settings to meet specific business requirements.",
+        "Optimized data entry procedures through process automation and intuitive interface design, enhancing user adoption.",
+        "Performed large-scale data migrations into Salesforce, utilizing Data Loader, Data Import Wizard, and Workbench, ensuring accurate and efficient data transfer."
+
       ],
       links: { live: "", github: "" }
     }
