@@ -1,5 +1,5 @@
 import { Moon, Sun, Download } from 'lucide-react';
-import { FaLinkedin, FaSalesforce, FaEnvelope } from 'react-icons/fa';
+import { FaLinkedin, FaSalesforce, FaEnvelope, FaWhatsapp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import { portfolioData } from '../data/portfolioData';
 import './Navbar.css';
@@ -50,6 +50,11 @@ const Navbar = ({ theme, toggleTheme }) => {
             <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${personal.email}`} target="_blank" rel="noreferrer" aria-label="Email" className="nav-social-icon">
               <FaEnvelope size={18} />
             </a>
+            {personal.whatsapp && (
+              <a href={`https://wa.me/${personal.whatsapp}?text=Hi%20Govardhan,%20I%20visited%20your%20portfolio%20and%20I'm%20interested%20in%20discussing%20a%20Salesforce%20opportunity%20with%20you!`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="nav-social-icon">
+                <FaWhatsapp size={18} />
+              </a>
+            )}
             {personal.linkedin && (
               <a href={personal.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="nav-social-icon">
                 <FaLinkedin size={18} />

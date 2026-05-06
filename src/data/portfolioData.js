@@ -5,11 +5,12 @@ export const portfolioData = {
     tagline: "Building Scalable Enterprise CRM Solutions | 4x Certified",
     bio: "Salesforce Developer with 4+ years of experience designing scalable CRM solutions using Apex, Lightning Web Components, and Salesforce integrations. Salesforce Platform Developer II certified with strong expertise in automation, integrations, and performance optimization. Experienced in Sales Cloud, Health Cloud and Experience cloud implementations with a track record of improving system performance, building multiple integrations and automating business processes. Seeking opportunities to contribute to enterprise Salesforce projects in global environments.",
     email: "govardhan.salesforcedeveloper@gmail.com",
+    whatsapp: "916300610553", // Replace with your actual WhatsApp number including country code (e.g., "919876543210")
     linkedin: "https://www.linkedin.com/in/govardhan-reddy-chigicherla-51b380221/",
     github: "", // Optional, can be added later
     trailhead: "https://www.salesforce.com/trailblazer/greddy169",
-    resume: "/Govardhan_Resume.pdf",
-    photo: "/profile-photo.png"
+    resume: "/Govardhan_Resume.pdf", 
+    photo: "/profile-photo.png" 
   },
   technicalExpertise: [
     {
@@ -61,25 +62,25 @@ export const portfolioData = {
       id: 1,
       name: "Salesforce Certified Platform Developer I",
       date: "2023",
-      image: "/cert-pd1.pdf"
+      image: "/cert-pd1.pdf" 
     },
     {
       id: 2,
       name: "Salesforce Certified Platform Developer II",
       date: "2024",
-      image: "/cert-pd2.pdf"
+      image: "/cert-pd2.pdf" 
     },
     {
       id: 3,
       name: "Copado Certified Fundamentals I",
       date: "2025",
-      image: "/Copado-Certified-FUNDAMENTALS-I.pdf"
+      image: "/Copado-Certified-FUNDAMENTALS-I.pdf" 
     },
     {
       id: 4,
       name: "Salesforce Certified Associate",
       date: "2023",
-      image: "/cert-Associate.pdf"
+      image: "/cert-Associate.pdf" 
     }
   ],
   clientProjects: [
