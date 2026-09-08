@@ -1,0 +1,15 @@
+{
+  "smtpUser": "govardhan.salesforcedeveloper@gmail.com",
+  "smtpPass": "wato qtde mjtt lbjk",
+  "autoSendEnabled": true,
+  "countdownMinutes": 15,
+  "locationFilter": "India (Bangalore, Hyderabad, Pune, Remote)",
+  "dailyLimit": 30,
+  "candidateName": "Govardhan Reddy Chigicherla",
+  "candidateTitle": "Salesforce Developer (4+ Yrs | 4x Certified)",
+  "portfolioUrl": "https://protfolio-blond-eta.vercel.app/",
+  "linkedinUrl": "https://www.linkedin.com/in/govardhan-reddy-chigicherla-51b380221/",
+  "trailheadUrl": "https://www.salesforce.com/trailblazer/greddy169",
+  "phone": "+91 6300610553",
+  "smtpPassMasked": "••••••••••••••••"
+}
