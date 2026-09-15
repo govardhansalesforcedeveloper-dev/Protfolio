@@ -17,10 +17,19 @@ import {
 } from 'lucide-react';
 import './OutreachDashboard.css';
 
-const API_BASE = 'http://localhost:5001/api';
+// Dynamic host determination so API calls work on desktop & mobile devices
+const getApiBase = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:5001/api`;
+  }
+  return 'http://localhost:5001/api';
+};
+
+const API_BASE = getApiBase();
 
 export default function OutreachDashboard({ onClose }) {
-  const [activeTab, setActiveTab] = useState('drafts'); // 'drafts' | 'quick' | 'history' | 'settings'
+  const [activeTab, setActiveTab] = useState('drafts');
   const [drafts, setDrafts] = useState([]);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState({
@@ -40,6 +49,8 @@ export default function OutreachDashboard({ onClose }) {
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const [saveSettingsStatus, setSaveSettingsStatus] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
+  const [draftStatus, setDraftStatus] = useState(null);
+  const [customEmails, setCustomEmails] = useState({});
 
   useEffect(() => {
     fetchStatus();
@@ -93,8 +104,6 @@ export default function OutreachDashboard({ onClose }) {
     }
   };
 
-  const [draftStatus, setDraftStatus] = useState(null);
-
   const handleProcessDrafts = async () => {
     if (!isSmtpConfigured) {
       setActiveTab('settings');
@@ -109,7 +118,7 @@ export default function OutreachDashboard({ onClose }) {
       if (data.success) {
         setDraftStatus({
           success: true,
-          message: `Successfully dispatched ${data.processedCount} application email(s) with your resume attached!`
+          message: `Dispatched ${data.processedCount} email(s) with your resume attached!`
         });
         fetchDrafts();
         fetchHistory();
@@ -126,7 +135,6 @@ export default function OutreachDashboard({ onClose }) {
   const handleQuickSend = async (e) => {
     e.preventDefault();
     if (!isSmtpConfigured) {
-      alert('Please configure your Gmail SMTP App Password in Settings first!');
       setActiveTab('settings');
       return;
     }
@@ -198,7 +206,7 @@ export default function OutreachDashboard({ onClose }) {
       });
       const data = await res.json();
       if (data.success) {
-        setTestEmailStatus({ success: true, message: `Verified! Sample application with Govardhan_Resume.pdf dispatched to ${settings.smtpUser}` });
+        setTestEmailStatus({ success: true, message: `Verified! Sample email with Govardhan_Resume.pdf sent to ${settings.smtpUser}` });
         setIsSmtpConfigured(true);
       } else {
         setTestEmailStatus({ success: false, message: data.error || 'SMTP Authentication failed' });
@@ -210,34 +218,43 @@ export default function OutreachDashboard({ onClose }) {
     }
   };
 
+  const generateGmailComposeLink = (targetEmail, roleTitle) => {
+    const email = targetEmail || '';
+    const subject = encodeURIComponent(`Application for ${roleTitle || 'Salesforce Developer'} | 4+ Yrs Exp | 4x Certified (PD1, PD2) - Govardhan Reddy`);
+    const body = encodeURIComponent(
+      `Hi Hiring Team,\n\nI am applying for the ${roleTitle || 'Salesforce Developer'} position. I am a 4x Certified Salesforce Developer with over 4+ years of hands-on experience in Apex, LWC, REST/SOAP APIs, Health Cloud, and Sales Cloud.\n\nYou can explore my live interactive portfolio here:\n${settings.portfolioUrl || 'https://protfolio-blond-eta.vercel.app/'}\n\nI look forward to discussing how my experience aligns with your team!\n\nBest regards,\nGovardhan Reddy Chigicherla\n+91 6300610553`
+    );
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${subject}&body=${body}`;
+  };
+
   return (
     <div className="outreach-dashboard-overlay">
       <motion.div
         className="outreach-dashboard-container glass"
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        exit={{ opacity: 0, scale: 0.96 }}
       >
         {/* Header */}
         <div className="outreach-header">
           <div className="outreach-title-group">
             <div className="outreach-badge">
-              <Sparkles size={14} /> Gmail Drafts & Quick Application Dispatcher
+              <Sparkles size={13} /> Outreach Engine
             </div>
-            <h2>1-Click Cold Email Engine</h2>
+            <h2>1-Click Recruiter Dispatcher</h2>
             <p className="outreach-subtitle">
-              Save recruiter emails as Gmail Drafts (or paste them here) to automatically format, attach resume, and send!
+              Format, attach resume, and dispatch applications via Gmail.
             </p>
           </div>
 
           <div className="outreach-header-actions">
             {isSmtpConfigured ? (
-              <span className="status-badge success"><CheckCircle2 size={13} /> Gmail SMTP Ready</span>
+              <span className="status-badge success"><CheckCircle2 size={13} /> SMTP Ready</span>
             ) : (
-              <span className="status-badge warning"><AlertTriangle size={13} /> SMTP Password Required</span>
+              <span className="status-badge warning"><AlertTriangle size={13} /> Password Required</span>
             )}
             {onClose && (
-              <button className="outreach-close-btn" onClick={onClose}>
+              <button className="outreach-close-btn" onClick={onClose} aria-label="Close">
                 ✕
               </button>
             )}
@@ -250,21 +267,21 @@ export default function OutreachDashboard({ onClose }) {
             className={`outreach-tab ${activeTab === 'drafts' ? 'active' : ''}`}
             onClick={() => { setActiveTab('drafts'); fetchDrafts(); }}
           >
-            <Inbox size={15} /> Process Gmail Drafts ({drafts.length})
+            <Inbox size={15} /> Gmail Drafts ({drafts.length})
           </button>
 
           <button
             className={`outreach-tab ${activeTab === 'quick' ? 'active' : ''}`}
             onClick={() => setActiveTab('quick')}
           >
-            <Send size={15} /> Quick Paste Email List
+            <Send size={15} /> Quick Paste List
           </button>
 
           <button
             className={`outreach-tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
-            <UserCheck size={15} /> Sent History ({history.length})
+            <UserCheck size={15} /> History ({history.length})
           </button>
 
           <button
@@ -281,11 +298,10 @@ export default function OutreachDashboard({ onClose }) {
             <div className="drafts-action-banner card">
               <div>
                 <h3 className="banner-title">
-                  <Inbox size={18} className="text-gradient" /> How Gmail Draft Dispatch Works
+                  <Inbox size={18} className="text-gradient" /> Gmail Drafts Auto-Dispatch
                 </h3>
                 <p className="banner-desc">
-                  1. Save draft emails in your Gmail account putting the recruiter's email in the <strong>To:</strong> field.<br/>
-                  2. Click <strong>Process & Send All Gmail Drafts</strong> below to automatically format, attach <code>Govardhan_Resume.pdf</code>, and send!
+                  Create a draft in Gmail with the recruiter's email in the <strong>To:</strong> field. Click <strong>Process & Send All Drafts</strong> to send with resume attached & clean up draft!
                 </p>
               </div>
 
@@ -296,16 +312,16 @@ export default function OutreachDashboard({ onClose }) {
                   disabled={isFetchingDrafts}
                 >
                   <RefreshCw size={14} className={isFetchingDrafts ? 'spinning' : ''} />
-                  {isFetchingDrafts ? 'Checking Gmail...' : 'Refresh Drafts'}
+                  {isFetchingDrafts ? 'Checking...' : 'Refresh'}
                 </button>
 
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-sm"
                   onClick={handleProcessDrafts}
                   disabled={isProcessingDrafts || drafts.length === 0 || !isSmtpConfigured}
                 >
-                  <Send size={16} />
-                  {isProcessingDrafts ? 'Processing & Sending...' : `Process & Send All Drafts (${drafts.length})`}
+                  <Send size={15} />
+                  {isProcessingDrafts ? 'Sending...' : `Process & Send (${drafts.length})`}
                 </button>
               </div>
             </div>
@@ -318,71 +334,96 @@ export default function OutreachDashboard({ onClose }) {
 
             {drafts.length === 0 ? (
               <div className="empty-state card">
-                <Inbox size={48} className="text-gradient" />
-                <h3>No Saved Drafts Detected in Gmail</h3>
-                <p>Open Gmail on your phone or laptop, create a draft email with the recruiter's address in the "To:" field, and click refresh!</p>
-                <button className="btn btn-secondary" onClick={fetchDrafts} disabled={isFetchingDrafts}>
-                  <RefreshCw size={16} className={isFetchingDrafts ? 'spinning' : ''} />
-                  Check Gmail Drafts Now
+                <Inbox size={44} className="text-gradient" />
+                <h3>No Saved Drafts Detected</h3>
+                <p>Save a draft in Gmail with the recruiter's email address and click refresh!</p>
+                <button className="btn btn-secondary btn-sm" onClick={fetchDrafts} disabled={isFetchingDrafts}>
+                  <RefreshCw size={15} className={isFetchingDrafts ? 'spinning' : ''} />
+                  Check Gmail Drafts
                 </button>
               </div>
             ) : (
               <div className="leads-grid">
-                {drafts.map((draft, idx) => (
-                  <motion.div
-                    key={draft.uid || idx}
-                    className="lead-card card"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <div className="lead-card-header">
-                      <div>
-                        <h4 className="lead-role">{draft.role}</h4>
-                        <div className="lead-company">
-                          <Building2 size={14} /> {draft.company}
+                {drafts.map((draft, idx) => {
+                  const targetEmail = customEmails[draft.uid] || draft.to;
+                  return (
+                    <motion.div
+                      key={draft.uid || idx}
+                      className="lead-card card"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="lead-card-header">
+                        <div>
+                          <h4 className="lead-role">{draft.role}</h4>
+                          <div className="lead-company">
+                            <Building2 size={13} /> {draft.company}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="lead-email-badge">
-                      <Mail size={13} /> {draft.to}
-                    </div>
+                      {draft.to ? (
+                        <div className="lead-email-badge">
+                          <Mail size={13} /> {draft.to}
+                        </div>
+                      ) : (
+                        <div className="custom-email-input">
+                          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Recruiter Email:</label>
+                          <input
+                            type="email"
+                            placeholder="Enter recruiter@company.com"
+                            value={customEmails[draft.uid] || ''}
+                            onChange={(e) => setCustomEmails({ ...customEmails, [draft.uid]: e.target.value })}
+                          />
+                        </div>
+                      )}
 
-                    <p className="lead-snippet">
-                      Original Subject: "{draft.originalSubject}"
-                    </p>
+                      <p className="lead-snippet">
+                        Subject: "{draft.originalSubject}"
+                      </p>
 
-                    <div className="lead-card-footer">
-                      <button
-                        className="link-btn"
-                        onClick={() => setPreviewItem(draft)}
-                      >
-                        <FileText size={13} /> Preview Formatted Email & Resume
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="lead-card-footer">
+                        <button
+                          className="link-btn"
+                          onClick={() => setPreviewItem({ ...draft, to: targetEmail })}
+                        >
+                          <FileText size={13} /> Preview Pitch
+                        </button>
+
+                        <a
+                          href={generateGmailComposeLink(targetEmail, draft.role)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary btn-xs"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <ExternalLink size={12} /> Open Gmail
+                        </a>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 2: QUICK PASTE EMAIL LIST */}
+        {/* TAB 2: QUICK PASTE LIST */}
         {activeTab === 'quick' && (
           <div className="tab-content">
             <div className="settings-grid">
               <div className="settings-card card">
-                <h3><Send size={20} className="text-gradient" /> Quick Email Paste Dispatcher</h3>
+                <h3><Send size={18} className="text-gradient" /> Quick Email Paste Dispatcher</h3>
                 <p className="settings-desc">
-                  Paste one or multiple recruiter email addresses below. Each recruiter will receive your personalized application with <code>Govardhan_Resume.pdf</code> attached.
+                  Paste recruiter emails below. Each recruiter receives your application with <code>Govardhan_Resume.pdf</code> attached.
                 </p>
 
                 <form onSubmit={handleQuickSend} className="settings-form">
                   <div className="form-group">
-                    <label>Recruiter Email Addresses (Separated by commas or lines)</label>
+                    <label>Recruiter Email Addresses</label>
                     <textarea
                       rows="4"
-                      placeholder="hr@company1.com, recruiter@company2.com, talent@firm.co.in"
+                      placeholder="hr@company1.com, recruiter@company2.com"
                       value={quickEmailsText}
                       onChange={(e) => setQuickEmailsText(e.target.value)}
                       required
@@ -393,7 +434,7 @@ export default function OutreachDashboard({ onClose }) {
                     <label>Company Name (Optional)</label>
                     <input
                       type="text"
-                      placeholder="e.g. Cloud Enterprise Solutions"
+                      placeholder="e.g. Enterprise CRM Solutions"
                       value={quickCompany}
                       onChange={(e) => setQuickCompany(e.target.value)}
                     />
@@ -414,8 +455,8 @@ export default function OutreachDashboard({ onClose }) {
                     className="btn btn-primary"
                     disabled={isQuickSending || !isSmtpConfigured || !quickEmailsText.trim()}
                   >
-                    <Send size={16} />
-                    {isQuickSending ? 'Dispatching Applications...' : '🚀 Send Applications Now'}
+                    <Send size={15} />
+                    {isQuickSending ? 'Sending...' : '🚀 Send Applications Now'}
                   </button>
 
                   {quickSendResult && (
@@ -427,12 +468,12 @@ export default function OutreachDashboard({ onClose }) {
               </div>
 
               <div className="settings-guide card">
-                <h3>What every recruiter receives:</h3>
+                <h3>Every recruiter receives:</h3>
                 <ul className="guide-steps">
-                  <li><strong>Subject Line:</strong> Application for Salesforce Developer | 4+ Yrs Exp | 4x Certified (PD1, PD2) - Govardhan Reddy</li>
+                  <li><strong>Subject:</strong> Application for Salesforce Developer | 4+ Yrs Exp | 4x Certified (PD1, PD2) - Govardhan Reddy</li>
                   <li><strong>Attachment:</strong> <code>Govardhan_Reddy_Salesforce_Developer_Resume.pdf</code></li>
-                  <li><strong>Key Highlights:</strong> 4+ Years Experience (Infosys, Lean Agilenautics), Apex, LWC, REST APIs, Health/Sales Cloud.</li>
-                  <li><strong>Live Links:</strong> Interactive Portfolio URL & Verified Trailhead Profile.</li>
+                  <li><strong>Experience:</strong> 4+ Years (Infosys, Lean Agilenautics), Apex, LWC, REST APIs.</li>
+                  <li><strong>Links:</strong> Portfolio URL & Verified Trailhead Profile.</li>
                 </ul>
               </div>
             </div>
@@ -444,9 +485,9 @@ export default function OutreachDashboard({ onClose }) {
           <div className="tab-content">
             {history.length === 0 ? (
               <div className="empty-state card">
-                <Mail size={48} className="text-gradient" />
-                <h3>No Sent Email History Yet</h3>
-                <p>Emails sent via Gmail SMTP will be tracked here with timestamps.</p>
+                <Mail size={44} className="text-gradient" />
+                <h3>No Sent History Yet</h3>
+                <p>Emails sent via Gmail SMTP will be tracked here.</p>
               </div>
             ) : (
               <div className="history-table-container card">
@@ -496,9 +537,9 @@ export default function OutreachDashboard({ onClose }) {
           <div className="tab-content">
             <div className="settings-grid">
               <div className="settings-card card">
-                <h3><ShieldCheck size={20} className="text-gradient" /> Gmail SMTP Configuration</h3>
+                <h3><ShieldCheck size={18} className="text-gradient" /> Gmail SMTP Setup</h3>
                 <p className="settings-desc">
-                  Emails are sent directly from your verified Gmail address with your resume PDF attached.
+                  Emails are sent directly from your Gmail address with your resume attached.
                 </p>
 
                 <form onSubmit={handleSaveSettings} className="settings-form">
@@ -513,10 +554,7 @@ export default function OutreachDashboard({ onClose }) {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Gmail App Password (16-character code)
-                      <span className="tooltip-tag">Required</span>
-                    </label>
+                    <label>Gmail App Password (16-character code)</label>
                     <input
                       type="password"
                       placeholder="xxxx xxxx xxxx xxxx"
@@ -524,12 +562,12 @@ export default function OutreachDashboard({ onClose }) {
                       onChange={(e) => setSettings({ ...settings, smtpPass: e.target.value })}
                     />
                     <small className="help-text">
-                      Generate this in Google Account → Security → 2-Step Verification → App Passwords.
+                      Generate in Google Account → Security → 2-Step Verification → App Passwords.
                     </small>
                   </div>
 
                   <div className="form-group">
-                    <label>Live Portfolio URL (Embedded in recruiter emails)</label>
+                    <label>Live Portfolio URL</label>
                     <input
                       type="url"
                       placeholder="https://your-portfolio.vercel.app/"
@@ -549,8 +587,8 @@ export default function OutreachDashboard({ onClose }) {
                       onClick={handleTestSmtp}
                       disabled={isTestingSmtp}
                     >
-                      <Mail size={16} />
-                      {isTestingSmtp ? 'Verifying SMTP...' : 'Test Connection & Send Sample Email'}
+                      <Mail size={15} />
+                      {isTestingSmtp ? 'Verifying...' : 'Test Connection'}
                     </button>
                   </div>
 
@@ -566,14 +604,13 @@ export default function OutreachDashboard({ onClose }) {
               </div>
 
               <div className="settings-guide card">
-                <h3>How to Generate your Gmail App Password</h3>
+                <h3>Generate Gmail App Password:</h3>
                 <ol className="guide-steps">
-                  <li>Go to your <strong>Google Account</strong> (myaccount.google.com).</li>
-                  <li>Click on <strong>Security</strong> in the left sidebar.</li>
-                  <li>Ensure <strong>2-Step Verification</strong> is enabled.</li>
-                  <li>Search for <strong>"App Passwords"</strong> (myaccount.google.com/apppasswords).</li>
-                  <li>Name it <code>Portfolio Outreach</code> and click <strong>Create</strong>.</li>
-                  <li>Copy the <strong>16-letter password</strong> and paste it into the field on the left!</li>
+                  <li>Go to <strong>myaccount.google.com/security</strong></li>
+                  <li>Ensure <strong>2-Step Verification</strong> is ON</li>
+                  <li>Go to <strong>myaccount.google.com/apppasswords</strong></li>
+                  <li>Type <code>Portfolio Outreach</code> and click Create</li>
+                  <li>Copy the 16-letter code and paste on the left!</li>
                 </ol>
               </div>
             </div>
@@ -587,16 +624,16 @@ export default function OutreachDashboard({ onClose }) {
               <motion.div
                 className="preview-modal-content card"
                 onClick={(e) => e.stopPropagation()}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                exit={{ opacity: 0, scale: 0.96 }}
               >
                 <div className="preview-modal-header">
                   <h3>Application Email Preview</h3>
                   <button onClick={() => setPreviewItem(null)}>✕</button>
                 </div>
                 <div className="preview-modal-body">
-                  <p><strong>To:</strong> {previewItem.to}</p>
+                  <p><strong>To:</strong> {previewItem.to || 'Recruiter'}</p>
                   <p><strong>Subject:</strong> Application for {previewItem.role || 'Salesforce Developer'} | 4+ Yrs Exp | 4x Certified (PD1, PD2) - Govardhan Reddy</p>
                   <p><strong>Attachment:</strong> Govardhan_Reddy_Salesforce_Developer_Resume.pdf</p>
                   <hr />

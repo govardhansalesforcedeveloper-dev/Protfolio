@@ -1,7 +1,7 @@
 import imaps from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { getSettings, sendApplicationEmail } from './emailService.js';
-import { sanitizeAndValidateEmail } from './leadFinder.js';
+import { sanitizeAndValidateEmail, extractEmails } from './leadFinder.js';
 
 /**
  * Connect to Gmail IMAP using configured App Password
@@ -32,8 +32,6 @@ async function connectImap() {
  */
 async function openDraftsFolder(connection) {
   const boxes = await connection.getBoxes();
-  
-  // Possible names for Gmail Drafts folder
   const possibleNames = ['[Gmail]/Drafts', 'Drafts', '[Google Mail]/Drafts', 'INBOX.Drafts'];
 
   for (const name of possibleNames) {
@@ -41,12 +39,9 @@ async function openDraftsFolder(connection) {
       await connection.openBox(name);
       console.log(`[DraftService] 📁 Opened Gmail Drafts folder: "${name}"`);
       return name;
-    } catch (err) {
-      // try next box name
-    }
+    } catch (err) {}
   }
 
-  // Recursive search if standard names fail
   for (const rootKey in boxes) {
     if (rootKey.toLowerCase().includes('gmail') || rootKey.toLowerCase().includes('google')) {
       const children = boxes[rootKey].children || {};
@@ -66,7 +61,7 @@ async function openDraftsFolder(connection) {
 }
 
 /**
- * Fetch all pending draft emails from Gmail
+ * Fetch all draft emails from Gmail (including drafts without explicit TO headers)
  */
 export async function fetchGmailDrafts() {
   let connection;
@@ -98,30 +93,27 @@ export async function fetchGmailDrafts() {
       const bodyText = parsedMail?.text || '';
       const bodyHtml = parsedMail?.html || null;
 
-      // Extract valid deliverable recipient email addresses
-      const emails = [];
+      // Extract emails from TO, CC, Subject, and Body
+      const detectedEmails = [];
+      
       if (parsedMail?.to?.value) {
         parsedMail.to.value.forEach(addr => {
           const cleaned = sanitizeAndValidateEmail(addr.address);
-          if (cleaned) emails.push(cleaned);
+          if (cleaned) detectedEmails.push(cleaned);
         });
       }
 
-      // If no TO header, extract emails from body or subject
-      if (emails.length === 0) {
-        const extracted = rawTo ? rawTo.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi) || [] : [];
-        extracted.forEach(raw => {
-          const cleaned = sanitizeAndValidateEmail(raw);
-          if (cleaned) emails.push(cleaned);
-        });
-      }
+      const textToScan = `${rawTo} ${subject} ${bodyText}`;
+      const extractedFromText = extractEmails(textToScan);
+      extractedFromText.forEach(e => {
+        if (!detectedEmails.includes(e)) detectedEmails.push(e);
+      });
 
-      // Determine if the draft has user-written custom content beyond empty signature
       const cleanBodyText = bodyText.replace(/Thanks & Regards[\s\S]*/i, '').trim();
       const hasRealCustomBody = cleanBodyText.length > 25;
 
-      if (emails.length > 0) {
-        emails.forEach(email => {
+      if (detectedEmails.length > 0) {
+        detectedEmails.forEach(email => {
           drafts.push({
             uid,
             to: email,
@@ -130,10 +122,24 @@ export async function fetchGmailDrafts() {
             role: extractRoleFromSubject(subject) || 'Salesforce Developer',
             originalSubject: subject,
             customSubject: subject !== '(No Subject)' && subject.trim().length > 3 ? subject : null,
-            customHtml: hasRealCustomBody ? bodyHtml : null, // Fallback to rich template if draft is blank
-            snippet: cleanBodyText.substring(0, 150) || 'Salesforce Developer Application',
+            customHtml: hasRealCustomBody ? bodyHtml : null,
+            snippet: cleanBodyText.substring(0, 150) || 'Salesforce Developer Application Draft',
             date: item.attributes.date || new Date().toISOString()
           });
+        });
+      } else {
+        // Even if recipient email is not yet set in draft, present the draft card so user can enter email
+        drafts.push({
+          uid,
+          to: '',
+          recruiterName: extractNameFromSubject(subject) || 'Hiring Team',
+          company: extractCompanyFromSubject(subject) || 'Company',
+          role: extractRoleFromSubject(subject) || 'Salesforce Developer',
+          originalSubject: subject,
+          customSubject: subject !== '(No Subject)' && subject.trim().length > 3 ? subject : null,
+          customHtml: hasRealCustomBody ? bodyHtml : null,
+          snippet: cleanBodyText.substring(0, 150) || 'Saved Gmail Draft',
+          date: item.attributes.date || new Date().toISOString()
         });
       }
     }
@@ -148,11 +154,7 @@ export async function fetchGmailDrafts() {
 }
 
 /**
- * Process all saved Gmail drafts:
- * 1. Reads all recipient recruiter emails from your saved Gmail Drafts.
- * 2. Renders rich cover letter body + attaches Govardhan_Resume.pdf.
- * 3. Dispatches via Gmail SMTP.
- * 4. Moves draft to Trash & expunges so it is deleted from Gmail!
+ * Process all saved Gmail drafts
  */
 export async function processAndSendAllDrafts() {
   const drafts = await fetchGmailDrafts();
@@ -174,6 +176,8 @@ export async function processAndSendAllDrafts() {
   const processedUids = new Set();
 
   for (const draft of drafts) {
+    if (!draft.to) continue; // Skip drafts without recipient
+
     try {
       console.log(`[DraftService] 🚀 Processing draft for ${draft.to}...`);
       
@@ -191,8 +195,7 @@ export async function processAndSendAllDrafts() {
       processedCount += 1;
       processedUids.add(draft.uid);
 
-      // 8-second delay between emails to protect sender reputation
-      await new Promise(r => setTimeout(r, 8000));
+      await new Promise(r => setTimeout(r, 6000));
     } catch (err) {
       console.error(`[DraftService] Failed to send draft for ${draft.to}:`, err.message);
       errors.push({ email: draft.to, error: err.message });
@@ -206,7 +209,6 @@ export async function processAndSendAllDrafts() {
         await connection.addFlags(uid, '\\Deleted');
       } catch (e) {}
 
-      // Move draft to Gmail Trash so Gmail removes it from Drafts
       try {
         await connection.moveMessage(uid, '[Gmail]/Trash');
       } catch (e) {
