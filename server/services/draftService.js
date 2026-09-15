@@ -154,9 +154,8 @@ export async function fetchGmailDrafts() {
 
 /**
  * Process all saved Gmail drafts:
- * 1. Reads all recipient recruiter emails from saved Gmail Drafts.
- * 2. Dispatches application email via SMTP + attaches Govardhan_Resume.pdf.
- * 3. Immediately deletes & moves each sent draft to Trash in Gmail using raw IMAP commands!
+ * 1. Sends all emails via SMTP + attaches Govardhan_Resume.pdf.
+ * 2. Connects a fresh dedicated IMAP session to delete & move sent drafts to Trash in Gmail!
  */
 export async function processAndSendAllDrafts() {
   const drafts = await fetchGmailDrafts();
@@ -165,17 +164,11 @@ export async function processAndSendAllDrafts() {
     return { success: true, processedCount: 0, message: 'No drafts found in your Gmail account.' };
   }
 
-  let connection = null;
-  try {
-    connection = await connectImap();
-    await openDraftsFolder(connection);
-  } catch (e) {
-    console.warn('[DraftService] Could not open IMAP connection for deletion; emails will still send via SMTP.');
-  }
-
   let processedCount = 0;
   const errors = [];
+  const processedUids = [];
 
+  // Step 1: Dispatch application emails via SMTP
   for (const draft of drafts) {
     if (!draft.to) continue; // Skip drafts without recipient
 
@@ -194,48 +187,56 @@ export async function processAndSendAllDrafts() {
       });
 
       processedCount += 1;
-
-      // 100% RELIABLE GMAIL IMAP DRAFT DELETION SEQUENCE:
-      if (connection && connection.imap) {
-        const uid = draft.uid;
-
-        // 1. Add \Deleted flag using array of flags
-        await new Promise((r) => {
-          connection.imap.addFlags(uid, ['\\Deleted'], (err) => {
-            if (err) console.warn('[DraftService] addFlags warning:', err.message);
-            r();
-          });
-        });
-
-        // 2. Move draft message to [Gmail]/Trash
-        await new Promise((r) => {
-          connection.imap.move(uid, '[Gmail]/Trash', (err) => {
-            if (err) {
-              // Try fallback folder name "Trash" or "INBOX.Trash"
-              connection.imap.move(uid, 'Trash', () => r());
-            } else {
-              r();
-            }
-          });
-        });
-
-        // 3. Expunge box
-        await new Promise((r) => {
-          connection.imap.expunge(() => r());
-        });
-
-        console.log(`[DraftService] 🧹 Deleted and moved draft UID ${uid} to Trash.`);
-      }
-
-      await new Promise(r => setTimeout(r, 1000));
+      processedUids.push(draft.uid);
     } catch (err) {
-      console.error(`[DraftService] Failed to process draft UID ${draft.uid} (${draft.to}):`, err.message);
+      console.error(`[DraftService] Failed to send email for draft UID ${draft.uid} (${draft.to}):`, err.message);
       errors.push({ email: draft.to, error: err.message });
     }
   }
 
-  if (connection) {
-    connection.end();
+  // Step 2: Open a fresh dedicated IMAP connection to delete processed drafts from Gmail
+  if (processedUids.length > 0) {
+    let cleanConnection = null;
+    try {
+      console.log(`[DraftService] 🧹 Connecting fresh IMAP to delete ${processedUids.length} draft(s)...`);
+      cleanConnection = await connectImap();
+      await openDraftsFolder(cleanConnection);
+
+      for (const uid of processedUids) {
+        try {
+          // Remove \Draft flag
+          await new Promise((r) => cleanConnection.imap.delFlags(uid, ['\\Draft'], () => r()));
+        } catch (e) {}
+
+        try {
+          // Add \Deleted flag
+          await new Promise((r) => cleanConnection.imap.addFlags(uid, ['\\Deleted'], () => r()));
+        } catch (e) {}
+
+        try {
+          // Move message to Trash
+          await new Promise((r) => cleanConnection.imap.move(uid, '[Gmail]/Trash', (err) => {
+            if (err) {
+              cleanConnection.imap.move(uid, 'Trash', () => r());
+            } else {
+              r();
+            }
+          }));
+        } catch (e) {}
+      }
+
+      try {
+        await new Promise((r) => cleanConnection.imap.expunge(() => r()));
+      } catch (e) {}
+
+      console.log(`[DraftService] 🧹 Successfully deleted & moved ${processedUids.length} draft(s) to Trash.`);
+    } catch (err) {
+      console.warn('[DraftService] Warning during IMAP draft deletion phase:', err.message);
+    } finally {
+      if (cleanConnection) {
+        try { cleanConnection.end(); } catch (e) {}
+      }
+    }
   }
 
   return {
