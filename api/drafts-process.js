@@ -1,5 +1,9 @@
 import { processAndSendAllDrafts } from '../server/services/draftService.js';
 
+export const config = {
+  maxDuration: 60 // Allow 60s execution window on Vercel Serverless
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });

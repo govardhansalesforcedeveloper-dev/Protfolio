@@ -61,7 +61,7 @@ async function openDraftsFolder(connection) {
 }
 
 /**
- * Fetch all draft emails from Gmail (including drafts without explicit TO headers)
+ * Fetch all draft emails from Gmail
  */
 export async function fetchGmailDrafts() {
   let connection;
@@ -128,7 +128,6 @@ export async function fetchGmailDrafts() {
           });
         });
       } else {
-        // Even if recipient email is not yet set in draft, present the draft card so user can enter email
         drafts.push({
           uid,
           to: '',
@@ -154,7 +153,10 @@ export async function fetchGmailDrafts() {
 }
 
 /**
- * Process all saved Gmail drafts
+ * Process all saved Gmail drafts:
+ * 1. Reads all recipient recruiter emails from saved Gmail Drafts.
+ * 2. Dispatches application email via SMTP + attaches Govardhan_Resume.pdf.
+ * 3. Immediately deletes & moves each sent draft to Trash in Gmail!
  */
 export async function processAndSendAllDrafts() {
   const drafts = await fetchGmailDrafts();
@@ -173,13 +175,12 @@ export async function processAndSendAllDrafts() {
 
   let processedCount = 0;
   const errors = [];
-  const processedUids = new Set();
 
   for (const draft of drafts) {
     if (!draft.to) continue; // Skip drafts without recipient
 
     try {
-      console.log(`[DraftService] 🚀 Processing draft for ${draft.to}...`);
+      console.log(`[DraftService] 🚀 Sending email for draft UID ${draft.uid} to ${draft.to}...`);
       
       await sendApplicationEmail({
         to: draft.to,
@@ -193,43 +194,40 @@ export async function processAndSendAllDrafts() {
       });
 
       processedCount += 1;
-      processedUids.add(draft.uid);
 
-      await new Promise(r => setTimeout(r, 6000));
+      // DELETE IMMEDIATELY AFTER SENDING THIS DRAFT!
+      if (connection) {
+        try {
+          await connection.addFlags(draft.uid, '\\Deleted');
+        } catch (e) {}
+
+        try {
+          await connection.moveMessage(draft.uid, '[Gmail]/Trash');
+          console.log(`[DraftService] 🧹 Moved draft UID ${draft.uid} to [Gmail]/Trash.`);
+        } catch (e) {
+          try {
+            await connection.moveMessage(draft.uid, 'Trash');
+          } catch (e2) {}
+        }
+      }
+
+      // Fast 1s delay per draft so Vercel Serverless Function completes well within timeout window
+      await new Promise(r => setTimeout(r, 1000));
     } catch (err) {
-      console.error(`[DraftService] Failed to send draft for ${draft.to}:`, err.message);
+      console.error(`[DraftService] Failed to process draft UID ${draft.uid} (${draft.to}):`, err.message);
       errors.push({ email: draft.to, error: err.message });
     }
   }
 
-  // Delete & expunge processed drafts from Gmail
-  if (connection && processedUids.size > 0) {
-    for (const uid of Array.from(processedUids)) {
-      try {
-        await connection.addFlags(uid, '\\Deleted');
-      } catch (e) {}
-
-      try {
-        await connection.moveMessage(uid, '[Gmail]/Trash');
-      } catch (e) {
-        try {
-          await connection.moveMessage(uid, 'Trash');
-        } catch (e2) {}
-      }
-    }
-
+  if (connection) {
     try {
       await connection.deleteAccumulatedFlags();
       if (connection.imap && typeof connection.imap.expunge === 'function') {
         await new Promise((resolve) => connection.imap.expunge(() => resolve()));
       }
-      console.log(`[DraftService] 🧹 Successfully deleted & moved ${processedUids.size} drafts to Trash in Gmail.`);
-    } catch (err) {
-      console.warn('[DraftService] Warning expunging drafts:', err.message);
-    }
+    } catch (e) {}
+    connection.end();
   }
-
-  if (connection) connection.end();
 
   return {
     success: true,
