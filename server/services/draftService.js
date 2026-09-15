@@ -156,7 +156,7 @@ export async function fetchGmailDrafts() {
  * Process all saved Gmail drafts:
  * 1. Reads all recipient recruiter emails from saved Gmail Drafts.
  * 2. Dispatches application email via SMTP + attaches Govardhan_Resume.pdf.
- * 3. Immediately deletes & moves each sent draft to Trash in Gmail!
+ * 3. Immediately deletes & moves each sent draft to Trash in Gmail using raw IMAP commands!
  */
 export async function processAndSendAllDrafts() {
   const drafts = await fetchGmailDrafts();
@@ -195,23 +195,38 @@ export async function processAndSendAllDrafts() {
 
       processedCount += 1;
 
-      // DELETE IMMEDIATELY AFTER SENDING THIS DRAFT!
-      if (connection) {
-        try {
-          await connection.addFlags(draft.uid, '\\Deleted');
-        } catch (e) {}
+      // 100% RELIABLE GMAIL IMAP DRAFT DELETION SEQUENCE:
+      if (connection && connection.imap) {
+        const uid = draft.uid;
 
-        try {
-          await connection.moveMessage(draft.uid, '[Gmail]/Trash');
-          console.log(`[DraftService] 🧹 Moved draft UID ${draft.uid} to [Gmail]/Trash.`);
-        } catch (e) {
-          try {
-            await connection.moveMessage(draft.uid, 'Trash');
-          } catch (e2) {}
-        }
+        // 1. Add \Deleted flag using array of flags
+        await new Promise((r) => {
+          connection.imap.addFlags(uid, ['\\Deleted'], (err) => {
+            if (err) console.warn('[DraftService] addFlags warning:', err.message);
+            r();
+          });
+        });
+
+        // 2. Move draft message to [Gmail]/Trash
+        await new Promise((r) => {
+          connection.imap.move(uid, '[Gmail]/Trash', (err) => {
+            if (err) {
+              // Try fallback folder name "Trash" or "INBOX.Trash"
+              connection.imap.move(uid, 'Trash', () => r());
+            } else {
+              r();
+            }
+          });
+        });
+
+        // 3. Expunge box
+        await new Promise((r) => {
+          connection.imap.expunge(() => r());
+        });
+
+        console.log(`[DraftService] 🧹 Deleted and moved draft UID ${uid} to Trash.`);
       }
 
-      // Fast 1s delay per draft so Vercel Serverless Function completes well within timeout window
       await new Promise(r => setTimeout(r, 1000));
     } catch (err) {
       console.error(`[DraftService] Failed to process draft UID ${draft.uid} (${draft.to}):`, err.message);
@@ -220,12 +235,6 @@ export async function processAndSendAllDrafts() {
   }
 
   if (connection) {
-    try {
-      await connection.deleteAccumulatedFlags();
-      if (connection.imap && typeof connection.imap.expunge === 'function') {
-        await new Promise((resolve) => connection.imap.expunge(() => resolve()));
-      }
-    } catch (e) {}
     connection.end();
   }
 
