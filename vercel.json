@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/status", "destination": "/api/status.js" },
+    { "source": "/api/drafts", "destination": "/api/drafts.js" },
+    { "source": "/api/drafts/process", "destination": "/api/drafts-process.js" },
+    { "source": "/api/quick-send", "destination": "/api/quick-send.js" },
+    { "source": "/api/settings", "destination": "/api/settings.js" }
+  ]
+}

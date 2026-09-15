@@ -17,9 +17,13 @@ import {
 } from 'lucide-react';
 import './OutreachDashboard.css';
 
-// Dynamic host determination so API calls work on desktop & mobile devices
+// Dynamic host determination so API calls work on local desktop & Vercel cloud deployment
 const getApiBase = () => {
   if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (!origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+      return '/api';
+    }
     const hostname = window.location.hostname;
     return `http://${hostname}:5001/api`;
   }
