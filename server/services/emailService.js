@@ -23,19 +23,29 @@ export const getResumePath = () => {
   return null;
 };
 
-const HISTORY_FILE = path.resolve(__dirname, '../data/history.json');
-const SETTINGS_FILE = path.resolve(__dirname, '../data/settings.json');
+const getSettingsFilePath = () => {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.resolve('/tmp', 'settings.json');
+  }
+  return path.resolve(__dirname, '../data/settings.json');
+};
 
-// Ensure data directory exists
-const dataDir = path.resolve(__dirname, '../data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+const getHistoryFilePath = () => {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.resolve('/tmp', 'history.json');
+  }
+  return path.resolve(__dirname, '../data/history.json');
+};
 
 export const getSettings = () => {
+  const filePath = getSettingsFilePath();
   try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
+    const rootPath = path.resolve(__dirname, '../data/settings.json');
+    if (fs.existsSync(rootPath)) {
+      return JSON.parse(fs.readFileSync(rootPath, 'utf-8'));
     }
   } catch (err) {
     console.error('Error reading settings:', err);
@@ -59,14 +69,26 @@ export const getSettings = () => {
 export const saveSettings = (newSettings) => {
   const current = getSettings();
   const updated = { ...current, ...newSettings };
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(updated, null, 2));
+  const filePath = getSettingsFilePath();
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(updated, null, 2));
+  } catch (err) {
+    console.error('Error saving settings:', err);
+  }
   return updated;
 };
 
 export const getHistory = () => {
+  const filePath = getHistoryFilePath();
   try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
+    const rootPath = path.resolve(__dirname, '../data/history.json');
+    if (fs.existsSync(rootPath)) {
+      return JSON.parse(fs.readFileSync(rootPath, 'utf-8'));
     }
   } catch (err) {
     console.error('Error reading history:', err);
@@ -87,7 +109,14 @@ export const logSentEmail = (entry) => {
     status: 'Delivered',
     sourceUrl: entry.sourceUrl || ''
   });
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+  const filePath = getHistoryFilePath();
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(history, null, 2));
+  } catch (err) {
+    console.error('Error saving history:', err);
+  }
 };
 
 export const isAlreadyEmailed = (email) => {
